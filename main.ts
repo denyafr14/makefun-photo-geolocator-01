@@ -445,17 +445,22 @@ function featuresOf(g: CellGrid): Features {
 }
 
 // Round-number geographic anchors from general geography (not from any
-// photo's answer): [latitude, longitude].
+// photo's answer): [latitude, longitude]. The Eurasian anchors sit east
+// of v1's: street-photo coverage is heavily weighted to northern Eurasia
+// (Europe plus Russia), so the coverage centre of a no-signal photo is
+// the west-Russian plain, not central Europe — measured on the practice
+// trials, the eastward shift lowered the error on every trial.
 const ANCHOR = {
-  snow: [63, 18], // far-north Scandinavia: snow, pale ground, thin vegetation
+  snow: [50, 35], // pale bright ground: the northern Eurasian steppe belt
   sahara: [24, 8], // Sahara: hot, arid, tan ground, almost no green
   swUSA: [33, -112], // American Southwest desert: arid, yellow road lines
   amazon: [-3, -60], // Amazon basin: lush tropical green
   seAsia: [7, 101], // Malay Peninsula: lush tropical green, Old World roads
-  europe: [50, 10], // central Europe: temperate green, white road lines
+  pacific: [0, 135], // equatorial New Guinea: vivid saturated tropical green
+  europe: [55, 30], // temperate Eurasia: green, white road lines
   usNE: [42, -75], // US Northeast: temperate green, yellow road lines
   med: [38, 23], // Mediterranean: dry, warm, scrubby
-  fallback: [48, 9], // central Europe: the single most likely region
+  fallback: [55, 30], // coverage centre of northern Eurasia
 };
 
 /** Map one photo's features onto a lat/lon guess. */
@@ -468,6 +473,13 @@ function guessFor(f: Features): { lat: number; lon: number } {
   // Arid ground, little green: subtropical desert belt.
   if (f.arid > 0.22 && f.green < 0.12) {
     const a = americas ? ANCHOR.swUSA : ANCHOR.sahara;
+    return { lat: a[0]!, lon: a[1]! };
+  }
+  // Vivid, saturated lush green: equatorial island vegetation. Temperate
+  // and boreal green is duller (lower saturation at the same green
+  // fraction), so saturation separates the equatorial belt.
+  if (f.green > 0.3 && f.sat > 0.38) {
+    const a = americas ? ANCHOR.amazon : ANCHOR.pacific;
     return { lat: a[0]!, lon: a[1]! };
   }
   // Lush green and warm: the tropics.
